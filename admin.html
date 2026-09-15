@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>จัดการระบบหลังบ้าน</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <h1>⚙️ ระบบจัดการข้อมูล (Admin)</h1>
+        <a href="index.html" class="btn-link">กลับหน้าหลัก</a>
+    </header>
+
+    <!-- ส่วน Login -->
+    <div id="login-section" class="card">
+        <h2>กรุณาใส่รหัสผ่าน</h2>
+        <input type="password" id="admin-password" placeholder="รหัสผ่าน...">
+        <button onclick="checkLogin()">เข้าสู่ระบบ</button>
+        <p id="login-error" style="color: red; display: none;">รหัสผ่านไม่ถูกต้อง!</p>
+    </div>
+
+    <!-- ส่วนแอดมิน (ซ่อนไว้จนกว่าจะล็อกอินผ่าน) -->
+    <main id="admin-dashboard" style="display: none;">
+        <nav class="admin-nav">
+            <button>จัดการเมนูอาหาร</button>
+            <button>จัดการวัตถุดิบ</button>
+            <button>จัดการหมวดหมู่</button>
+            <button>จัดการโปรโมชั่น</button>
+        </nav>
+        
+        <section class="card">
+            <h2>เพิ่มเมนูใหม่</h2>
+            <form id="add-menu-form" onsubmit="submitNewMenu(event)">
+                <input type="text" id="menu-name" placeholder="ชื่อเมนู" required>
+                <input type="text" id="menu-category" placeholder="หมวดหมู่" required>
+                <button type="submit">บันทึกข้อมูล</button>
+            </form>
+            <p id="status-msg"></p>
+        </section>
+    </main>
+
+    <script src="app.js"></script>
+</body>
+</html>
