@@ -1,0 +1,1412 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ระบบคู่มือเมนูและวัตถุดิบ - ร้านอาหารญี่ปุ่น</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Google Fonts: Kanit -->
+  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            jpRed: '#D32F2F',
+            jpRedDark: '#B71C1C',
+            jpCream: '#FDFBF7',
+            jpDark: '#2C2C2C'
+          },
+          fontFamily: {
+            kanit: ['Kanit', 'sans-serif']
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { font-family: 'Kanit', sans-serif; background-color: #FDFBF7; }
+    .hide-scrollbar::-webkit-scrollbar { display: none; }
+    .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+  </style>
+</head>
+<body class="bg-jpCream text-jpDark min-h-screen flex flex-col">
+  <header class="bg-white border-b border-red-100 shadow-sm sticky top-0 z-50">
+    <div class="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
+      <div class="flex items-center space-x-3 cursor-pointer" onclick="switchTab('user')">
+        <div class="w-10 h-10 rounded-full bg-jpRed text-white flex items-center justify-center font-bold text-lg shadow-md">
+          <i class="fa-solid fa-utensils"></i>
+        </div>
+        <div>
+          <h1 class="font-bold text-lg text-gray-800 leading-tight">SOP เมนู & โปรโมชั่น</h1>
+          <p class="text-xs text-gray-500">ระบบตรวจสอบเมนู วัตถุดิบ & ชุดโปรโมชั่นหน้าร้าน</p>
+        </div>
+      </div>
+      
+      <div class="flex items-center space-x-2">
+        <button onclick="switchTab('user')" id="btnTabUser" class="px-4 py-2 rounded-xl text-sm font-medium transition-all bg-jpRed text-white shadow-sm">
+          <i class="fa-solid fa-magnifying-glass mr-1"></i> ค้นหาเมนู & โปรโมชั่น
+        </button>
+        <button onclick="openAdminPasswordModal()" id="btnTabAdmin" class="px-4 py-2 rounded-xl text-sm font-medium transition-all bg-gray-100 text-gray-700 hover:bg-gray-200">
+          <i class="fa-solid fa-lock mr-1"></i> ผู้ดูแลระบบ
+        </button>
+      </div>
+    </div>
+  </header>
+  <main class="flex-grow max-w-6xl w-full mx-auto p-4 sm:p-6">
+    
+   <!-- USER VIEW (หน้าพนักงานหน้าร้าน) -->
+    <section id="viewUser" class="space-y-6">
+      <!-- 1. ชุดโปรโมชั่นพิเศษตามช่วงเวลา (ย้ายขึ้นมาอยู่บนสุด) -->
+      <div class="space-y-4">
+        <div class="flex items-center space-x-2 border-b border-red-100 pb-2">
+          <i class="fa-solid fa-clock-rotate-left text-jpRed text-lg"></i>
+          <h2 class="font-bold text-lg text-gray-800">ชุดโปรโมชั่นพิเศษตามช่วงเวลา</h2>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4" id="userPromoContainer"></div>
+      </div>
+
+      <!-- 2. ช่องค้นหาเมนูอาหารทั่วไป -->
+      <div class="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-red-50 space-y-4">
+        <div class="flex items-center space-x-2 pb-1">
+          <i class="fa-solid fa-book-open text-jpRed text-lg"></i>
+          <h2 class="font-bold text-lg text-gray-800">ค้นหาเมนูอาหารทั่วไป</h2>
+        </div>
+        <div class="relative">
+          <span class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-400">
+            <i class="fa-solid fa-magnifying-glass text-lg"></i>
+          </span>
+          <input type="text" id="searchInput" oninput="filterMenus()" placeholder="พิมพ์ชื่อเมนู หรือ รหัสเมนู เช่น SU001, ราเมน..." 
+            class="w-full pl-12 pr-4 py-3.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-jpRed focus:bg-white outline-none transition text-base font-medium">
+          <button onclick="clearSearch()" class="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-gray-600">
+            <i class="fa-solid fa-xmark text-lg"></i>
+          </button>
+        </div>
+        <div class="flex space-x-2 overflow-x-auto hide-scrollbar pb-1" id="categoryChips">
+          <button onclick="filterCategory('ทั้งหมด')" class="cat-btn px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap bg-jpRed text-white shadow-sm transition">
+            ทั้งหมด
+          </button>
+        </div>
+      </div>
+      
+      <!-- รายการเมนูอาหารทั่วไป -->
+      <div class="space-y-4 pt-2">
+        <div class="flex justify-between items-center px-1">
+          <p class="text-sm text-gray-500 font-medium" id="resultCount">กำลังโหลดรายการเมนู...</p>
+        </div>
+        <div id="menuGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4"></div>
+      </div>
+    </section>
+
+    <!-- ADMIN VIEW (หน้าแอดมิน) -->
+    <section id="viewAdmin" class="hidden space-y-6">
+      <div class="bg-white p-6 rounded-2xl shadow-sm border border-red-50 flex justify-between items-center">
+        <div>
+          <h2 class="text-xl font-bold text-gray-800"><i class="fa-solid fa-gear text-jpRed mr-2"></i> ระบบจัดการข้อมูลหลังบ้าน</h2>
+          <p class="text-xs text-gray-500 mt-0.5">เพิ่ม แก้ไข หรือลบข้อมูล เมนู, หมวดหมู่, วัตถุดิบ และโปรโมชั่นตามช่วงเวลา</p>
+        </div>
+        <button onclick="adminLogout()" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-sm font-medium transition">
+          <i class="fa-solid fa-right-from-bracket mr-1"></i> ออกจากระบบ
+        </button>
+      </div>
+      
+      <div class="flex border-b border-gray-200 space-x-6 overflow-x-auto hide-scrollbar">
+        <button onclick="switchAdminSubTab('menu')" id="subTabMenuBtn" class="pb-3 border-b-2 border-jpRed text-jpRed font-semibold text-sm transition whitespace-nowrap">
+          จัดการเมนูอาหาร & รูปภาพ
+        </button>
+        <button onclick="switchAdminSubTab('ingredient')" id="subTabIngBtn" class="pb-3 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-semibold text-sm transition whitespace-nowrap">
+          จัดการวัตถุดิบ (แยกตามหมวดหมู่)
+        </button>
+        <button onclick="switchAdminSubTab('category')" id="subTabCatBtn" class="pb-3 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-semibold text-sm transition whitespace-nowrap">
+          จัดการหมวดหมู่
+        </button>
+        <button onclick="switchAdminSubTab('promotion')" id="subTabPromoBtn" class="pb-3 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-semibold text-sm transition whitespace-nowrap">
+          จัดการโปรโมชั่น (ตามช่วงเวลา)
+        </button>
+      </div>
+
+      <!-- SubTab 1: Menu Management -->
+      <div id="subTabMenu" class="space-y-6">
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+          <div class="flex justify-between items-center mb-4">
+            <h3 class="font-bold text-base text-gray-800" id="menuFormTitle"><i class="fa-solid fa-circle-plus text-jpRed mr-1"></i> เพิ่มเมนูใหม่</h3>
+            <a href="https://drive.google.com/drive/folders/1h8wGC9wGprTGhYb8NyCqXB8yGcKU9UO_?usp=sharing" target="_blank" class="text-xs text-jpRed hover:underline font-medium">
+              <i class="fa-brands fa-google-drive mr-1"></i> เปิดดูโฟลเดอร์รูปภาพใน Drive
+            </a>
+          </div>
+          <form id="menuForm" onsubmit="handleSaveMenu(event)" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-semibold text-gray-600 mb-1">รหัสเมนู (เช่น SU001)</label>
+              <input type="text" id="mCode" required class="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:bg-white outline-none focus:ring-2 focus:ring-jpRed">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-gray-600 mb-1">ชื่อเมนู</label>
+              <input type="text" id="mName" required class="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:bg-white outline-none focus:ring-2 focus:ring-jpRed">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-gray-600 mb-1">หมวดหมู่</label>
+              <select id="mCategory" required class="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:bg-white outline-none focus:ring-2 focus:ring-jpRed"></select>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-gray-600 mb-1">อัปโหลดรูปภาพ</label>
+              <div class="space-y-2">
+                <input type="file" id="mImageFile" accept="image/*" onchange="handleImageUpload(event)" class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs file:mr-4 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-red-50 file:text-jpRed hover:file:bg-red-100">
+                <input type="hidden" id="mImage">
+              </div>
+            </div>
+            <div class="sm:col-span-2">
+              <label class="block text-xs font-semibold text-gray-600 mb-1">รายละเอียดเมนู / สเปค</label>
+              <textarea id="mDesc" rows="2" class="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:bg-white outline-none focus:ring-2 focus:ring-jpRed" placeholder="อธิบายขั้นตอนหรือส่วนประกอบสั้นๆ..."></textarea>
+            </div>
+            <div class="sm:col-span-2 flex justify-end space-x-2">
+              <button type="button" onclick="resetMenuForm()" id="cancelMenuEdit" class="hidden px-4 py-2 bg-gray-200 text-gray-700 rounded-xl text-sm font-medium">ยกเลิก</button>
+              <button type="submit" class="px-6 py-2.5 bg-jpRed text-white rounded-xl text-sm font-semibold hover:bg-jpRedDark transition shadow-sm">
+                <i class="fa-solid fa-floppy-disk mr-1"></i> บันทึกข้อมูลเมนู
+              </button>
+            </div>
+          </form>
+        </div>
+        <div class="space-y-6">
+          <div class="flex justify-between items-center px-1">
+            <h3 class="font-bold text-base text-gray-800"><i class="fa-solid fa-list text-jpRed mr-1"></i> รายการเมนูทั้งหมดในระบบ (แยกตามหมวดหมู่)</h3>
+          </div>
+          <div id="adminCategorizedMenuContainer" class="space-y-6"></div>
+        </div>
+      </div>
+
+      <!-- SubTab 2: Ingredient Management -->
+      <div id="subTabIngredient" class="hidden space-y-6">
+        <div class="space-y-3">
+          <div class="flex justify-between items-center">
+            <h3 class="font-bold text-base text-gray-800"><i class="fa-solid fa-layer-group text-jpRed mr-1"></i> ภาพรวมวัตถุดิบแยกตามหมวดหมู่</h3>
+            <span class="text-xs text-gray-500">คลิกการ์ดหมวดหมู่เพื่อดูรายละเอียดเมนูและวัตถุดิบ</span>
+          </div>
+          <div id="ingredientCategoryOverviewGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4"></div>
+        </div>
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-5">
+          <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-gray-100 pb-4">
+            <div>
+              <h3 class="font-bold text-base text-gray-800"><i class="fa-solid fa-basket-shopping text-jpRed mr-1"></i> จัดการวัตถุดิบรายเมนู</h3>
+              <p class="text-xs text-gray-500 mt-0.5">เลือกหมวดหมู่และเลือกเมนูอาหารเพื่อกำหนดวัตถุดิบและปริมาณ</p>
+            </div>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-50 p-4 rounded-2xl border border-gray-100">
+            <div>
+              <label class="block text-xs font-semibold text-gray-600 mb-1">1. เลือกหมวดหมู่เมนู</label>
+              <select id="ingFilterCategory" onchange="onAdminIngCategoryChange()" class="w-full px-3 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-jpRed"></select>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-gray-600 mb-1">2. เลือกเมนูอาหาร</label>
+              <select id="ingSelectMenu" onchange="loadIngredientsForMenu()" class="w-full px-3 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 font-medium text-jpRed focus:ring-jpRed"></select>
+            </div>
+          </div>
+          <div id="ingredientRowsContainer" class="space-y-3 pt-2"></div>
+          <div class="flex items-center justify-between pt-2">
+            <button type="button" onclick="addIngredientRow()" class="px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-sm font-medium transition">
+              <i class="fa-solid fa-plus mr-1"></i> เพิ่มแถววัตถุดิบ
+            </button>
+            <button type="button" onclick="saveIngredientsData()" class="px-6 py-2.5 bg-jpRed hover:bg-jpRedDark text-white rounded-xl text-sm font-semibold transition shadow-sm">
+              <i class="fa-solid fa-check mr-1"></i> บันทึกวัตถุดิบของเมนูนี้
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- SubTab 3: Category Management -->
+      <div id="subTabCategory" class="hidden space-y-6">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 h-fit">
+            <h3 class="font-bold text-base text-gray-800 mb-4"><i class="fa-solid fa-folder-plus text-jpRed mr-1"></i> เพิ่มหมวดหมู่ใหม่</h3>
+            <form onsubmit="handleAddCategory(event)" class="space-y-4">
+              <div>
+                <label class="block text-xs font-semibold text-gray-600 mb-1">ชื่อหมวดหมู่</label>
+                <input type="text" id="newCategoryName" required placeholder="เช่น ซูชิ, อาหารทานเล่น..." class="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:bg-white outline-none focus:ring-2 focus:ring-jpRed">
+              </div>
+              <button type="submit" class="w-full py-2.5 bg-jpRed text-white rounded-xl text-sm font-semibold hover:bg-jpRedDark transition shadow-sm">
+                บันทึกหมวดหมู่
+              </button>
+            </form>
+          </div>
+          <div class="md:col-span-2 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="p-4 border-b border-gray-100 font-bold text-sm text-gray-700">หมวดหมู่ทั้งหมดในระบบ</div>
+            <div class="overflow-x-auto">
+              <table class="w-full text-left border-collapse">
+                <thead>
+                  <tr class="bg-gray-50 text-xs text-gray-500 uppercase tracking-wider border-b border-gray-100">
+                    <th class="p-3">ลำดับ</th>
+                    <th class="p-3">ชื่อหมวดหมู่</th>
+                    <th class="p-3 text-center">จัดการ</th>
+                  </tr>
+                </thead>
+                <tbody id="adminCategoryTableBody" class="text-sm divide-y divide-gray-100"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SubTab 4: Promotion Management -->
+      <div id="subTabPromotion" class="hidden space-y-6">
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-5">
+          <div class="flex justify-between items-center border-b border-gray-100 pb-4">
+            <div>
+              <h3 class="font-bold text-base text-gray-800"><i class="fa-solid fa-clock text-jpRed mr-1"></i> จัดการชุดโปรโมชั่นตามช่วงเวลา</h3>
+              <p class="text-xs text-gray-500 mt-0.5">กำหนดชุดโปรโมชั่น เลือกช่วงเวลา และเลือกเมนูที่ต้องการจับคู่ในเซต</p>
+            </div>
+          </div>
+          <form id="promoForm" onsubmit="handleSavePromotion(event)" class="space-y-4">
+            <input type="hidden" id="promoEditId">
+            <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
+              <div>
+                <label class="block text-xs font-semibold text-gray-600 mb-1">รหัสโปรโมชั่น (เช่น ST-005)</label>
+                <input type="text" id="pCode" required placeholder="ST-005" class="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:bg-white outline-none focus:ring-2 focus:ring-jpRed">
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-gray-600 mb-1">ชื่อเซตโปรโมชั่น</label>
+                <input type="text" id="pName" required placeholder="เซต ซูชิซูเด้งอิ่มจัง" class="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:bg-white outline-none focus:ring-2 focus:ring-jpRed">
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-gray-600 mb-1">เลือกช่วงเวลาโปรโมชั่น</label>
+                <select id="pTimeSlot" required class="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:bg-white outline-none focus:ring-2 focus:ring-jpRed">
+                  <option value="" disabled selected>-- เลือกช่วงเวลา --</option>
+                  <option value="10.00 - 14.00 น.">10.00 - 14.00 น.</option>
+                  <option value="14.00 - 17.00 น.">14.00 - 17.00 น.</option>
+                  <option value="17.00 - 22.00 น.">17.00 - 22.00 น.</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-gray-600 mb-1">ราคาขาย (บาท)</label>
+                <input type="number" id="pPrice" required placeholder="99" class="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:bg-white outline-none focus:ring-2 focus:ring-jpRed">
+              </div>
+            </div>
+            
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs font-semibold text-gray-600 mb-1">อัปโหลดรูปภาพเซตโปรโมชั่น</label>
+                <input type="file" id="pImageFile" accept="image/*" onchange="handlePromoImageUpload(event)" class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs file:mr-4 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-red-50 file:text-jpRed hover:file:bg-red-100">
+                <input type="hidden" id="pImage">
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-gray-600 mb-1">คำอธิบายเพิ่มเติม</label>
+                <input type="text" id="pDesc" placeholder="รับฟรี เป๊ปซี่ 1 ขวด ขนาด 340ml" class="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:bg-white outline-none focus:ring-2 focus:ring-jpRed">
+              </div>
+            </div>
+
+            <div class="space-y-3 pt-2">
+              <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider">เลือกเมนูในเซตโปรโมชั่น</label>
+              <div id="promoItemsContainer" class="space-y-2"></div>
+              <button type="button" onclick="addPromoItemRow()" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-xs font-medium transition">
+                <i class="fa-solid fa-plus mr-1"></i> เพิ่มรายการเมนูในเซต
+              </button>
+            </div>
+            <div class="flex justify-end space-x-2 pt-4 border-t border-gray-100">
+              <button type="button" onclick="resetPromoForm()" id="cancelPromoEdit" class="hidden px-4 py-2 bg-gray-200 text-gray-700 rounded-xl text-sm font-medium">ยกเลิก</button>
+              <button type="submit" class="px-6 py-2.5 bg-jpRed hover:bg-jpRedDark text-white rounded-xl text-sm font-semibold transition shadow-sm">
+                <i class="fa-solid fa-floppy-disk mr-1"></i> บันทึกชุดโปรโมชั่น
+              </button>
+            </div>
+          </form>
+        </div>
+        
+        <div class="space-y-4">
+          <h3 class="font-bold text-base text-gray-800"><i class="fa-solid fa-list-check text-jpRed mr-1"></i> รายการโปรโมชั่นทั้งหมดในระบบ</h3>
+          <div id="adminPromoListContainer" class="space-y-4"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Modals -->
+  <div id="categoryDetailModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
+      <div class="p-5 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+        <div>
+          <span class="text-xs font-bold text-jpRed uppercase tracking-wider">หมวดหมู่สินค้า</span>
+          <h3 class="font-bold text-xl text-gray-800" id="catModalTitle">รายละเอียดหมวดหมู่</h3>
+        </div>
+        <button onclick="closeCategoryDetailModal()" class="w-9 h-9 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-full flex items-center justify-center transition">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+      <div class="p-6 overflow-y-auto space-y-4 flex-grow" id="catModalContent"></div>
+    </div>
+  </div>
+
+  <div id="adminPasswordModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white w-full max-w-sm rounded-3xl shadow-2xl overflow-hidden p-6 space-y-5">
+      <div class="text-center space-y-1">
+        <div class="w-12 h-12 bg-red-100 text-jpRed rounded-2xl flex items-center justify-center mx-auto mb-2 text-xl shadow-inner">
+          <i class="fa-solid fa-lock"></i>
+        </div>
+        <h3 class="font-bold text-lg text-gray-800">เข้าสู่ระบบผู้ดูแลระบบ</h3>
+        <p class="text-xs text-gray-500">กรุณากรอกรหัสผ่านเพื่อจัดการข้อมูลหลังบ้าน</p>
+      </div>
+      <form onsubmit="handleAdminLogin(event)" class="space-y-4">
+        <div>
+          <input type="password" id="adminPasswordInput" required placeholder="รหัสผ่าน (Password)" 
+            class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm text-center tracking-widest focus:bg-white outline-none focus:ring-2 focus:ring-jpRed">
+        </div>
+        <div class="flex space-x-2">
+          <button type="button" onclick="closeAdminPasswordModal()" class="w-1/2 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-sm font-medium transition">ยกเลิก</button>
+          <button type="submit" class="w-1/2 py-2.5 bg-jpRed hover:bg-jpRedDark text-white rounded-xl text-sm font-semibold transition shadow-sm">ยืนยัน</button>
+        </div>
+      </form>
+    </div>
+  </div>
+<!-- Modal แสดงรายชื่อโปรโมชั่นทั้งหมดในแต่ละช่วงเวลา (ปรับปรุงใหม่ให้อ่านง่ายบนมือถือ) -->
+  <div id="timeSlotModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3 sm:p-4">
+    <div class="bg-white w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+      <!-- ส่วนหัว Modal: ปรับขนาดฟอนต์ไม่ให้ตกบรรทัด -->
+      <div class="p-4 sm:p-5 border-b border-gray-100 flex justify-between items-center bg-jpRed text-white flex-shrink-0">
+        <div class="flex items-center space-x-2.5 min-w-0 pr-2">
+          <div class="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center flex-shrink-0">
+            <i class="fa-solid fa-clock text-lg text-white"></i>
+          </div>
+          <h3 class="font-bold text-base sm:text-lg leading-snug truncate" id="timeSlotModalTitle">ช่วงเวลาโปรโมชั่น</h3>
+        </div>
+        <button onclick="closeTimeSlotModal()" class="w-9 h-9 bg-white/20 hover:bg-white/30 text-white rounded-full flex items-center justify-center transition flex-shrink-0">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+      <!-- รายการโปรโมชั่นย่อยภายใน -->
+      <div class="p-3 sm:p-5 overflow-y-auto space-y-3 flex-grow bg-gray-50" id="timeSlotModalContent"></div>
+    </div>
+  </div>
+  
+  <!-- Modal แสดงรายละเอียดโปรโมชั่นเดี่ยว (แบบชัดเจนเน้นสีแตกต่าง เหมือนภาพที่ 2) -->
+  <div id="promoDetailModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden transform transition-all flex flex-col max-h-[90vh]">
+      <div class="relative h-56 bg-gray-100 flex-shrink-0">
+        <img id="promoModalImg" src="" onerror="this.src='https://placehold.co/600x400/FDFBF7/D32F2F?text=Nihon+Promotion'" class="w-full h-full object-cover">
+        <button onclick="closePromoDetailModal()" class="absolute top-4 right-4 w-9 h-9 bg-black/50 hover:bg-black/70 text-white rounded-full flex items-center justify-center transition">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+        <div class="absolute bottom-3 left-3 bg-jpRed text-white px-3 py-1 rounded-lg text-xs font-semibold shadow" id="promoModalCode">ST-001</div>
+      </div>
+      <div class="p-6 space-y-4 overflow-y-auto flex-grow">
+        <div class="flex justify-between items-start">
+          <div>
+            <span class="text-xs font-bold text-jpRed uppercase tracking-wider" id="promoModalTimeSlot">10.00 - 14.00 น.</span>
+            <h2 class="text-2xl font-bold text-gray-800 leading-tight" id="promoModalName">ชื่อโปรโมชั่น</h2>
+          </div>
+          <div class="text-right flex-shrink-0">
+            <span class="text-2xl font-bold text-jpRed" id="promoModalPrice">109.-</span>
+          </div>
+        </div>
+        
+        <div>
+          <h4 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">ในชุดโปรโมชั่นประกอบด้วย</h4>
+          <div class="flex items-center px-4 py-3 rounded-2xl bg-jpRed text-white font-bold text-base shadow-md border border-red-700">
+            <i class="fa-solid fa-circle-exclamation text-white mr-2.5 text-lg flex-shrink-0"></i>
+            <span id="promoModalDesc" class="text-sm font-normal leading-relaxed">-</span>
+          </div>
+        </div>
+
+        <div>
+          <h4 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2"><i class="fa-solid fa-basket-shopping text-jpRed mr-1"></i> รายการเมนูอาหารในเซต</h4>
+          <div id="promoModalItemsList" class="space-y-2"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div id="detailModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden transform transition-all">
+      <div class="relative h-56 bg-gray-100">
+        <img id="modalImg" src="" onerror="this.src='https://placehold.co/600x400/FDFBF7/D32F2F?text=Nihon+Menu'" class="w-full h-full object-cover">
+        <button onclick="closeModal()" class="absolute top-4 right-4 w-9 h-9 bg-black/50 hover:bg-black/70 text-white rounded-full flex items-center justify-center transition">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+        <div class="absolute bottom-3 left-3 bg-jpRed text-white px-3 py-1 rounded-lg text-xs font-semibold shadow" id="modalCategory">หมวดหมู่</div>
+      </div>
+      <div class="p-6 space-y-4 max-h-[60vh] overflow-y-auto">
+        <div>
+          <span class="text-xs font-bold text-jpRed" id="modalCode">SU001</span>
+          <h2 class="text-2xl font-bold text-gray-800" id="modalName">ชื่อเมนูอาหาร</h2>
+        </div>
+        <div>
+          <h4 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">รายละเอียด / สเปคเมนู</h4>
+          <div class="flex items-center px-4 py-3 rounded-2xl bg-jpRed text-white font-bold text-base shadow-md border border-red-700">
+            <i class="fa-solid fa-circle-exclamation text-white mr-2.5 text-lg"></i>
+            <span id="modalDesc">-</span>
+          </div>
+        </div>
+        <div>
+          <h4 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2"><i class="fa-solid fa-basket-shopping text-jpRed mr-1"></i> รายการวัตถุดิบที่ใช้</h4>
+          <div id="modalIngredientsList" class="space-y-2"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="editCategoryModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white w-full max-w-sm rounded-3xl shadow-2xl overflow-hidden p-6 space-y-4">
+      <h3 class="font-bold text-lg text-gray-800"><i class="fa-solid fa-pen-to-square text-jpRed mr-1"></i> แก้ไขชื่อหมวดหมู่</h3>
+      <input type="hidden" id="editCategoryOldName">
+      <div>
+        <label class="block text-xs font-semibold text-gray-600 mb-1">ชื่อหมวดหมู่ใหม่</label>
+        <input type="text" id="editCategoryNewName" class="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:bg-white outline-none focus:ring-2 focus:ring-jpRed">
+      </div>
+      <div class="flex space-x-2 pt-2">
+        <button type="button" onclick="closeEditCategoryModal()" class="w-1/2 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-sm font-medium transition">ยกเลิก</button>
+        <button type="button" onclick="submitEditCategory()" class="w-1/2 py-2.5 bg-jpRed hover:bg-jpRedDark text-white rounded-xl text-sm font-semibold transition shadow-sm">บันทึก</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="fixed bottom-6 right-6 z-50 transform translate-y-20 opacity-0 transition-all duration-300 bg-gray-900 text-white px-5 py-3 rounded-2xl shadow-xl flex items-center space-x-3 text-sm font-medium">
+    <i id="toastIcon" class="fa-solid fa-circle-check text-green-400 text-lg"></i>
+    <span id="toastMsg">บันทึกข้อมูลสำเร็จ</span>
+  </div>
+
+  <script>
+    let appData = { menus: [], categories: [], ingredients: [], promotions: [] };
+    let currentCategoryFilter = 'ทั้งหมด';
+    
+    window.onload = function() {
+      fetchAllData();
+    };
+
+    function fetchAllData() {
+      google.script.run
+        .withSuccessHandler(res => {
+          if(res.success) {
+            appData = res;
+            if(!appData.promotions) appData.promotions = [];
+            renderCategories();
+            renderMenus();
+            renderUserPromotions();
+            populateAdminDropdowns();
+            renderAdminCategoryTable();
+            renderAdminMenuTable();
+            renderIngredientCategoryOverview();
+            renderAdminPromotions();
+          } else {
+            showToast('เกิดข้อผิดพลาดในการโหลดข้อมูล', 'error');
+          }
+        })
+        .withFailureHandler(err => {
+          showToast('ไม่สามารถเชื่อมต่อกับ Google Sheets ได้', 'error');
+        })
+        .getAllData();
+    }
+
+    function renderCategories() {
+      const container = document.getElementById('categoryChips');
+      let html = `<button onclick="filterCategory('ทั้งหมด')" class="cat-btn px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap ${currentCategoryFilter === 'ทั้งหมด' ? 'bg-jpRed text-white shadow-sm' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'} transition">ทั้งหมด</button>`;
+      appData.categories.forEach(cat => {
+        const isActive = currentCategoryFilter === cat;
+        html += `<button onclick="filterCategory('${cat}')" class="cat-btn px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap ${isActive ? 'bg-jpRed text-white shadow-sm' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'} transition">${cat}</button>`;
+      });
+      container.innerHTML = html;
+    }
+
+    function filterCategory(cat) {
+      currentCategoryFilter = cat;
+      renderCategories();
+      renderMenus();
+    }
+
+    function filterMenus() { renderMenus(); }
+    
+    function clearSearch() {
+      document.getElementById('searchInput').value = '';
+      renderMenus();
+    }
+
+    function renderMenus() {
+      const keyword = document.getElementById('searchInput').value.toLowerCase().trim();
+      const grid = document.getElementById('menuGrid');
+      
+      let filtered = appData.menus.filter(m => {
+        const matchCat = currentCategoryFilter === 'ทั้งหมด' || m.category === currentCategoryFilter;
+        const matchKey = !keyword || m.name.toLowerCase().includes(keyword) || m.code.toLowerCase().includes(keyword) || m.desc.toLowerCase().includes(keyword);
+        return matchCat && matchKey;
+      });
+      
+      filtered.sort((a, b) => {
+        const catIndexA = appData.categories.indexOf(a.category);
+        const catIndexB = appData.categories.indexOf(b.category);
+        if (catIndexA !== catIndexB) {
+          return (catIndexA === -1 ? 999 : catIndexA) - (catIndexB === -1 ? 999 : catIndexB);
+        }
+        return a.code.localeCompare(b.code, 'th', { numeric: true });
+      });
+
+      document.getElementById('resultCount').innerText = `พบรายการทั้งหมด ${filtered.length} เมนู`;
+      
+      if (filtered.length === 0) {
+        grid.innerHTML = `
+          <div class="col-span-full py-16 text-center bg-white rounded-3xl border border-gray-100">
+            <i class="fa-solid fa-utensils text-4xl text-gray-300 mb-3"></i>
+            <p class="text-gray-500 font-medium">ไม่พบเมนูอาหารที่คุณค้นหา</p>
+            <p class="text-xs text-gray-400 mt-1">ลองเปลี่ยนคำค้นหาหรือเลือกหมวดหมู่อื่น</p>
+          </div>
+        `;
+        return;
+      }
+      
+      let html = '';
+      filtered.forEach(m => {
+        const imgSrc = m.image ? m.image : 'https://placehold.co/600x400/FDFBF7/D32F2F?text=Nihon+Menu';
+        html += `
+          <div onclick="openMenuDetail('${m.code}')" class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md hover:border-red-200 transition cursor-pointer flex flex-col group">
+            <div class="h-44 bg-gray-50 relative overflow-hidden flex items-center justify-center p-2">
+              <img src="${imgSrc}" onerror="this.src='https://placehold.co/600x400/FDFBF7/D32F2F?text=Nihon+Menu'" class="max-h-full max-w-full object-contain group-hover:scale-105 transition duration-500">
+              <span class="absolute top-3 left-3 bg-white/90 backdrop-blur text-xs font-semibold px-2.5 py-1 rounded-lg text-jpRed shadow-sm">${m.category}</span>
+            </div>
+            <div class="p-4 flex flex-col flex-grow justify-between space-y-2">
+              <div>
+                <span class="text-xs font-bold text-gray-400">${m.code}</span>
+                <h3 class="font-bold text-lg text-gray-800 leading-snug group-hover:text-jpRed transition">${m.name}</h3>
+                <p class="text-xs text-gray-500 line-clamp-2 mt-1">${m.desc || 'ไม่มีรายละเอียดเพิ่มเติม'}</p>
+              </div>
+              <div class="pt-2 border-t border-gray-100 flex justify-between items-center text-xs text-gray-400">
+                <span><i class="fa-solid fa-basket-shopping mr-1 text-jpRed"></i> ดูวัตถุดิบ</span>
+                <span class="text-jpRed font-semibold group-hover:translate-x-1 transition"><i class="fa-solid fa-chevron-right"></i></span>
+              </div>
+            </div>
+          </div>
+        `;
+      });
+      grid.innerHTML = html;
+    }
+
+    function renderUserPromotions() {
+      const container = document.getElementById('userPromoContainer');
+      const timeSlots = ["10.00 - 14.00 น.", "14.00 - 17.00 น.", "17.00 - 22.00 น."];
+      let html = '';
+      
+      timeSlots.forEach(slot => {
+        const promosInSlot = (appData.promotions || []).filter(p => p.timeSlot === slot);
+        html += `
+          <div onclick="openTimeSlotModal('${slot}')" class="bg-white p-5 rounded-2xl shadow-sm border border-red-100 hover:border-red-300 hover:shadow-md transition cursor-pointer flex flex-col justify-between space-y-3 group">
+            <div class="flex justify-between items-start">
+              <div>
+                <span class="text-xs font-semibold text-jpRed bg-red-50 px-2.5 py-1 rounded-lg"><i class="fa-solid fa-clock mr-1"></i>ช่วงเวลา</span>
+                <h4 class="font-bold text-lg text-gray-800 mt-1 group-hover:text-jpRed transition">${slot}</h4>
+              </div>
+              <div class="w-10 h-10 rounded-xl bg-gray-50 group-hover:bg-red-50 text-gray-500 group-hover:text-jpRed flex items-center justify-center transition">
+                <i class="fa-solid fa-utensils text-base"></i>
+              </div>
+            </div>
+            <div class="flex items-center justify-between pt-3 border-t border-gray-100 text-xs text-gray-500">
+              <span class="font-medium text-gray-600">ชุดโปรโมชั่นพิเศษ</span>
+              <span class="font-semibold text-jpRed bg-red-50 px-2.5 py-1 rounded-lg">${promosInSlot.length} เซตโปร</span>
+            </div>
+          </div>
+        `;
+      });
+      container.innerHTML = html;
+    }
+
+function openTimeSlotModal(slot) {
+      document.getElementById('timeSlotModalTitle').innerText = `ชุดโปรโมชั่นช่วงเวลา ${slot}`;
+      const contentEl = document.getElementById('timeSlotModalContent');
+      const promos = (appData.promotions || []).filter(p => p.timeSlot === slot);
+      if (promos.length === 0) {
+        contentEl.innerHTML = `<div class="text-center py-12 text-gray-400"><i class="fa-solid fa-mug-hot text-3xl mb-2"></i><p>ยังไม่มีโปรโมชั่นในช่วงเวลานี้</p></div>`;
+      } else {
+        let html = '';
+        promos.forEach(p => {
+          const promoImgSrc = p.image ? p.image : 'https://placehold.co/400x250/FDFBF7/D32F2F?text=Nihon+Promotion';
+          html += `
+            <div onclick="openPromoDetail('${p.code}')" class="bg-white rounded-2xl p-3 sm:p-4 border border-red-100 shadow-sm hover:shadow-md hover:border-jpRed transition cursor-pointer flex items-center justify-between gap-3">
+              <!-- รูปภาพและข้อมูลฝั่งซ้าย -->
+              <div class="flex items-center space-x-3 min-w-0 flex-grow">
+                <img src="${promoImgSrc}" class="w-16 h-16 sm:w-20 sm:h-20 object-cover rounded-xl border border-gray-200 flex-shrink-0" onerror="this.src='https://placehold.co/400x250/FDFBF7/D32F2F?text=Nihon+Promotion'">
+                <div class="min-w-0 flex-grow space-y-1">
+                  <!-- รหัสเซต (ใส่ whitespace-nowrap ป้องกันการตกบรรทัด) -->
+                  <div class="inline-block">
+                    <span class="px-2 py-0.5 bg-red-50 text-jpRed font-bold text-xs rounded-lg border border-red-200 whitespace-nowrap">${p.code}</span>
+                  </div>
+                  <!-- ชื่อเมนู -->
+                  <h4 class="font-bold text-sm sm:text-base text-gray-800 truncate">${p.name}</h4>
+                  <!-- คำว่าคลิกเพื่อดูรายละเอียด -->
+                  <p class="text-xs font-medium text-jpRed flex items-center space-x-1">
+                    <i class="fa-solid fa-hand-pointer text-[10px]"></i>
+                    <span>คลิกเพื่อดูรายละเอียด</span>
+                  </p>
+                </div>
+              </div>
+            </div>
+          `;
+        });
+        contentEl.innerHTML = html;
+      }
+      document.getElementById('timeSlotModal').classList.remove('hidden');
+    }
+    function closeTimeSlotModal() {
+      document.getElementById('timeSlotModal').classList.add('hidden');
+    }
+
+function openPromoDetail(code) {
+      const p = (appData.promotions || []).find(item => item.code === code);
+      if (!p) return;
+
+      const promoImgSrc = p.image ? p.image : 'https://placehold.co/600x400/FDFBF7/D32F2F?text=Nihon+Promotion';
+      
+      // ดึงข้อมูลคำอธิบายเพิ่มเติม (รองรับหลายฟิลด์เพื่อป้องกันค่าหาย)
+      const promoDesc = p.description || p.desc || p.detail || p.note || '';
+
+      // สร้างรายการอาหารย่อยในเซต
+      let itemsHtml = '';
+      if (p.items && p.items.length > 0) {
+        p.items.forEach(sub => {
+          const subName = sub.name || sub.menuName || sub.title || sub.text || 'รายการในเซต';
+          const subQty = sub.quantity || sub.qty || sub.amount || '';
+          itemsHtml += `
+            <div class="bg-white rounded-2xl p-3 sm:p-4 border border-red-100 shadow-sm flex items-center justify-between gap-3">
+              <div class="flex items-center space-x-3 min-w-0">
+                <div class="w-8 h-8 rounded-xl bg-red-50 text-jpRed flex items-center justify-center flex-shrink-0 font-bold text-xs">
+                  <i class="fa-solid fa-check"></i>
+                </div>
+                <h4 class="font-bold text-sm sm:text-base text-gray-800 truncate">${subName}</h4>
+              </div>
+              ${subQty ? `<span class="px-3 py-1 bg-red-50 text-jpRed font-bold text-xs sm:text-sm rounded-xl border border-red-100 whitespace-nowrap flex-shrink-0">${subQty}</span>` : ''}
+            </div>
+          `;
+        });
+      } else {
+        itemsHtml = `<div class="bg-white rounded-2xl p-4 border border-red-100 text-center text-gray-400 text-sm">ไม่มีรายการอาหารย่อยระบุ</div>`;
+      }
+
+      // เปลี่ยนหัวข้อโมเดลให้มีปุ่มย้อนกลับไปหน้าเลือกรหัสโปรโมชั่น (ภาพที่ 1)
+      const headerTitleEl = document.getElementById('timeSlotModalTitle');
+      headerTitleEl.innerHTML = `
+        <div class="flex items-center space-x-3">
+          <button onclick="openTimeSlotModal('${p.timeSlot}')" class="w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center text-white transition">
+            <i class="fa-solid fa-arrow-left text-sm"></i>
+          </button>
+          <span class="truncate">รายละเอียดโปรโมชั่น (${p.code})</span>
+        </div>
+      `;
+
+      // แสดงรายละเอียดโปรโมชั่นเต็มรูปแบบ (เน้นคำอธิบายเพิ่มเติมให้เด่นชัดขึ้น)
+      const contentEl = document.getElementById('timeSlotModalContent');
+      contentEl.innerHTML = `
+        <div class="space-y-4">
+          <!-- รูปภาพตัวอย่างโปรโมชั่น -->
+          <div class="relative rounded-2xl overflow-hidden border border-red-100 shadow-sm">
+            <img src="${promoImgSrc}" class="w-full h-48 sm:h-60 object-cover" onerror="this.src='https://placehold.co/600x400/FDFBF7/D32F2F?text=Nihon+Promotion'">
+            <div class="absolute top-3 left-3">
+              <span class="px-2.5 py-1 bg-jpRed text-white font-bold text-xs rounded-lg shadow">${p.code}</span>
+            </div>
+          </div>
+
+          <!-- ข้อมูลหลัก -->
+          <div class="bg-white rounded-2xl p-4 border border-red-100 shadow-sm space-y-3">
+            <div class="flex justify-between items-start gap-2">
+              <div>
+                <p class="text-xs font-bold text-jpRed flex items-center space-x-1">
+                  <i class="fa-solid fa-clock"></i>
+                  <span>ช่วงเวลา ${p.timeSlot} น.</span>
+                </p>
+                <h3 class="text-lg sm:text-xl font-bold text-gray-900 mt-0.5">${p.name}</h3>
+              </div>
+              <div class="text-right">
+                <span class="text-xl sm:text-2xl font-extrabold text-jpRed">${p.price || 0}.-</span>
+              </div>
+            </div>
+            
+            <!-- ส่วนคำอธิบายเพิ่มเติม (ดีไซน์เน้นความเด่นชัด) -->
+            <div class="pt-1">
+              <div class="bg-gradient-to-r from-red-50 to-orange-50 border-2 border-red-200 p-3.5 rounded-2xl shadow-sm space-y-1">
+                <p class="text-xs font-extrabold text-jpRed flex items-center space-x-1.5">
+                  <i class="fa-solid fa-circle-exclamation text-sm"></i>
+                  <span>สิทธิพิเศษในโปรโมชั่น</span>
+                </p>
+                <div class="text-xs sm:text-sm font-semibold text-gray-800 pl-5">
+                  ${promoDesc ? promoDesc : '<span class="text-gray-400 font-normal italic">ไม่มีคำอธิบายเพิ่มเติม</span>'}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- รายการอาหารในเซต -->
+          <div class="space-y-2">
+            <h4 class="font-bold text-sm text-gray-700 flex items-center space-x-2 px-1">
+              <i class="fa-solid fa-utensils text-jpRed"></i>
+              <span>รายการเมนูอาหารในเซต</span>
+            </h4>
+            <div class="space-y-2">
+              ${itemsHtml}
+            </div>
+          </div>
+        </div>
+      `;
+
+      document.getElementById('timeSlotModal').classList.remove('hidden');
+    }
+
+    function closePromoDetailModal() {
+      document.getElementById('promoDetailModal').classList.add('hidden');
+    }
+
+    function switchTab(tab) {
+      const viewUser = document.getElementById('viewUser');
+      const viewAdmin = document.getElementById('viewAdmin');
+      const btnUser = document.getElementById('btnTabUser');
+      const btnAdmin = document.getElementById('btnTabAdmin');
+      if(tab === 'user') {
+        viewUser.classList.remove('hidden');
+        viewAdmin.classList.add('hidden');
+        btnUser.className = "px-4 py-2 rounded-xl text-sm font-medium transition-all bg-jpRed text-white shadow-sm";
+        btnAdmin.className = "px-4 py-2 rounded-xl text-sm font-medium transition-all bg-gray-100 text-gray-700 hover:bg-gray-200";
+      } else {
+        viewUser.classList.add('hidden');
+        viewAdmin.classList.remove('hidden');
+        btnAdmin.className = "px-4 py-2 rounded-xl text-sm font-medium transition-all bg-jpRed text-white shadow-sm";
+        btnUser.className = "px-4 py-2 rounded-xl text-sm font-medium transition-all bg-gray-100 text-gray-700 hover:bg-gray-200";
+      }
+    }
+
+    function switchAdminSubTab(sub) {
+      ['subTabMenu', 'subTabIngredient', 'subTabCategory', 'subTabPromotion'].forEach(id => document.getElementById(id).classList.add('hidden'));
+      ['subTabMenuBtn', 'subTabIngBtn', 'subTabCatBtn', 'subTabPromoBtn'].forEach(id => {
+        document.getElementById(id).className = "pb-3 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-semibold text-sm transition whitespace-nowrap";
+      });
+      if(sub === 'menu') {
+        document.getElementById('subTabMenu').classList.remove('hidden');
+        document.getElementById('subTabMenuBtn').className = "pb-3 border-b-2 border-jpRed text-jpRed font-semibold text-sm transition whitespace-nowrap";
+      } else if(sub === 'ingredient') {
+        document.getElementById('subTabIngredient').classList.remove('hidden');
+        document.getElementById('subTabIngBtn').className = "pb-3 border-b-2 border-jpRed text-jpRed font-semibold text-sm transition whitespace-nowrap";
+      } else if(sub === 'category') {
+        document.getElementById('subTabCategory').classList.remove('hidden');
+        document.getElementById('subTabCatBtn').className = "pb-3 border-b-2 border-jpRed text-jpRed font-semibold text-sm transition whitespace-nowrap";
+      } else if(sub === 'promotion') {
+        document.getElementById('subTabPromotion').classList.remove('hidden');
+        document.getElementById('subTabPromoBtn').className = "pb-3 border-b-2 border-jpRed text-jpRed font-semibold text-sm transition whitespace-nowrap";
+        initPromoBuilder();
+      }
+    }
+
+    function openAdminPasswordModal() {
+      document.getElementById('adminPasswordModal').classList.remove('hidden');
+      document.getElementById('adminPasswordInput').value = '';
+      document.getElementById('adminPasswordInput').focus();
+    }
+    
+    function closeAdminPasswordModal() { document.getElementById('adminPasswordModal').classList.add('hidden'); }
+    
+    function handleAdminLogin(e) {
+      e.preventDefault();
+      if (document.getElementById('adminPasswordInput').value === "admin123") {
+        closeAdminPasswordModal();
+        switchTab('admin');
+        showToast('เข้าสู่ระบบผู้ดูแลสำเร็จ', 'success');
+      } else {
+        showToast('รหัสผ่านไม่ถูกต้อง!', 'error');
+        document.getElementById('adminPasswordInput').value = '';
+      }
+    }
+
+    function adminLogout() {
+      switchTab('user');
+      showToast('ออกจากระบบผู้ดูแลแล้ว', 'success');
+    }
+
+    function showToast(msg, type = 'success') {
+      const toast = document.getElementById('toast');
+      document.getElementById('toastMsg').innerText = msg;
+      document.getElementById('toastIcon').className = type === 'success' ? "fa-solid fa-circle-check text-green-400 text-lg" : "fa-solid fa-circle-exclamation text-red-400 text-lg";
+      toast.classList.remove('translate-y-20', 'opacity-0');
+      setTimeout(() => toast.classList.add('translate-y-20', 'opacity-0'), 3000);
+    }
+
+    function populateAdminDropdowns() {
+      const mCatSelect = document.getElementById('mCategory');
+      const ingCatSelect = document.getElementById('ingFilterCategory');
+      let options = `<option value="" disabled selected>-- เลือกหมวดหมู่ --</option>`;
+      appData.categories.forEach(cat => options += `<option value="${cat}">${cat}</option>`);
+      mCatSelect.innerHTML = options;
+      ingCatSelect.innerHTML = `<option value="ทั้งหมด">-- ทุกหมวดหมู่ --</option>` + options;
+      if(appData.categories.length > 0) {
+        ingCatSelect.value = 'ทั้งหมด';
+        onAdminIngCategoryChange();
+      }
+    }
+
+    function renderAdminCategoryTable() {
+      const tbody = document.getElementById('adminCategoryTableBody');
+      if(appData.categories.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="3" class="p-6 text-center text-gray-400">ยังไม่มีหมวดหมู่ในระบบ</td></tr>`;
+        return;
+      }
+      let html = '';
+      appData.categories.forEach((cat, idx) => {
+        html += `
+          <tr class="hover:bg-gray-50 transition">
+            <td class="p-3 font-semibold text-gray-500">${idx + 1}</td>
+            <td class="p-3 font-bold text-gray-800">${cat}</td>
+            <td class="p-3 text-center space-x-2">
+              <button onclick="openEditCategoryModal('${cat}')" class="px-3 py-1 bg-blue-50 text-blue-600 rounded-lg text-xs font-semibold hover:bg-blue-100 transition"><i class="fa-solid fa-pen mr-1"></i>แก้ไข</button>
+              <button onclick="deleteCategory('${cat}')" class="px-3 py-1 bg-red-50 text-jpRed rounded-lg text-xs font-semibold hover:bg-red-100 transition"><i class="fa-solid fa-trash mr-1"></i>ลบ</button>
+            </td>
+          </tr>
+        `;
+      });
+      tbody.innerHTML = html;
+    }
+
+    function handleAddCategory(event) {
+      event.preventDefault();
+      const catName = document.getElementById('newCategoryName').value.trim();
+      if(!catName) return;
+      google.script.run.withSuccessHandler(res => {
+        if(res.success) { showToast('เพิ่มหมวดหมู่สำเร็จ'); document.getElementById('newCategoryName').value = ''; fetchAllData(); }
+        else { showToast(res.message || 'เกิดข้อผิดพลาด', 'error'); }
+      }).addCategory(catName);
+    }
+
+    function openEditCategoryModal(oldName) {
+      document.getElementById('editCategoryOldName').value = oldName;
+      document.getElementById('editCategoryNewName').value = oldName;
+      document.getElementById('editCategoryModal').classList.remove('hidden');
+    }
+    
+    function closeEditCategoryModal() { document.getElementById('editCategoryModal').classList.add('hidden'); }
+    
+    function submitEditCategory() {
+      const oldName = document.getElementById('editCategoryOldName').value;
+      const newName = document.getElementById('editCategoryNewName').value.trim();
+      if(!newName) return;
+      google.script.run.withSuccessHandler(res => {
+        if(res.success) { closeEditCategoryModal(); showToast('แก้ไขหมวดหมู่สำเร็จ'); fetchAllData(); }
+        else { showToast(res.message || 'เกิดข้อผิดพลาด', 'error'); }
+      }).editCategory(oldName, newName);
+    }
+
+    function deleteCategory(catName) {
+      if(!confirm(`ต้องการลบหมวดหมู่ "${catName}" ใช่หรือไม่?`)) return;
+      google.script.run.withSuccessHandler(res => {
+        if(res.success) { showToast('ลบหมวดหมู่สำเร็จ'); fetchAllData(); }
+        else { showToast(res.message || 'เกิดข้อผิดพลาด', 'error'); }
+      }).deleteCategory(catName);
+    }
+
+    function handleImageUpload(event) {
+      const file = event.target.files[0];
+      if(!file) return;
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        document.getElementById('mImage').value = e.target.result;
+        showToast('อัปโหลดรูปภาพชั่วคราวสำเร็จ');
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function handlePromoImageUpload(event) {
+      const file = event.target.files[0];
+      if(!file) return;
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        document.getElementById('pImage').value = e.target.result;
+        showToast('อัปโหลดรูปโปรโมชั่นชั่วคราวสำเร็จ');
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function handleSaveMenu(event) {
+      event.preventDefault();
+      const menuData = {
+        code: document.getElementById('mCode').value.trim(),
+        name: document.getElementById('mName').value.trim(),
+        category: document.getElementById('mCategory').value,
+        image: document.getElementById('mImage').value,
+        desc: document.getElementById('mDesc').value.trim()
+      };
+      google.script.run.withSuccessHandler(res => {
+        if(res.success) { showToast('บันทึกเมนูอาหารสำเร็จ'); resetMenuForm(); fetchAllData(); }
+        else { showToast(res.message || 'เกิดข้อผิดพลาด', 'error'); }
+      }).saveMenu(menuData);
+    }
+
+    function resetMenuForm() {
+      document.getElementById('menuForm').reset();
+      document.getElementById('mCode').removeAttribute('readonly');
+      document.getElementById('menuFormTitle').innerHTML = `<i class="fa-solid fa-circle-plus text-jpRed mr-1"></i> เพิ่มเมนูใหม่`;
+      document.getElementById('cancelMenuEdit').classList.add('hidden');
+      document.getElementById('mImage').value = '';
+    }
+
+    function editMenu(code) {
+      const menu = appData.menus.find(m => m.code === code);
+      if(!menu) return;
+      document.getElementById('mCode').value = menu.code;
+      document.getElementById('mCode').setAttribute('readonly', true);
+      document.getElementById('mName').value = menu.name;
+      document.getElementById('mCategory').value = menu.category;
+      document.getElementById('mImage').value = menu.image || '';
+      document.getElementById('mDesc').value = menu.desc || '';
+      document.getElementById('menuFormTitle').innerHTML = `<i class="fa-solid fa-pen-to-square text-jpRed mr-1"></i> แก้ไขเมนู: ${menu.code}`;
+      document.getElementById('cancelMenuEdit').classList.remove('hidden');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function deleteMenu(code) {
+      if(!confirm(`ต้องการลบเมนูรหัส "${code}" ใช่หรือไม่?`)) return;
+      google.script.run.withSuccessHandler(res => {
+        if(res.success) { showToast('ลบเมนูสำเร็จ'); fetchAllData(); }
+        else { showToast(res.message || 'เกิดข้อผิดพลาด', 'error'); }
+      }).deleteMenu(code);
+    }
+
+    function renderAdminMenuTable() {
+      const container = document.getElementById('adminCategorizedMenuContainer');
+      if (!appData.categories || appData.categories.length === 0) {
+        container.innerHTML = `<div class="bg-white p-8 rounded-2xl text-center text-gray-400 border border-gray-100">ยังไม่มีหมวดหมู่ในระบบ</div>`;
+        return;
+      }
+      let html = '';
+      appData.categories.forEach(cat => {
+        const menusInCat = appData.menus.filter(m => m.category === cat);
+        html += `
+          <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden mb-6">
+            <div class="bg-gray-50 px-5 py-3.5 border-b border-gray-100 flex justify-between items-center">
+              <div class="flex items-center space-x-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-jpRed"></span>
+                <h4 class="font-bold text-sm text-gray-800">${cat}</h4>
+                <span class="text-xs font-medium text-gray-500 bg-white px-2.5 py-0.5 rounded-full border border-gray-200">${menusInCat.length} เมนู</span>
+              </div>
+            </div>
+            <div class="overflow-x-auto">
+        `;
+        if (menusInCat.length === 0) {
+          html += `<div class="p-6 text-center text-gray-400 text-xs italic">ยังไม่มีเมนูในหมวดหมู่นี้</div>`;
+        } else {
+          html += `
+            <table class="w-full text-left border-collapse">
+              <thead>
+                <tr class="bg-gray-50/50 text-xs text-gray-500 uppercase tracking-wider border-b border-gray-100">
+                  <th class="p-3.5 pl-5 w-16">รูปภาพ</th>
+                  <th class="p-3.5 w-24">รหัส</th>
+                  <th class="p-3.5 w-1/4">ชื่อเมนู</th>
+                  <th class="p-3.5">รายละเอียด / สเปค</th>
+                  <th class="p-3.5 text-center w-28">จัดการ</th>
+                </tr>
+              </thead>
+              <tbody class="text-sm divide-y divide-gray-100 align-middle">
+          `;
+          menusInCat.forEach(m => {
+            const imgSrc = m.image ? m.image : 'https://placehold.co/100x100/FDFBF7/D32F2F?text=No+Img';
+            html += `
+              <tr class="hover:bg-gray-50/80 transition">
+                <td class="p-3.5 pl-5"><img src="${imgSrc}" class="w-10 h-10 object-cover rounded-xl border border-gray-200 shadow-sm" onerror="this.src='https://placehold.co/100x100/FDFBF7/D32F2F?text=No+Img'"></td>
+                <td class="p-3.5 font-bold text-xs text-jpRed">${m.code}</td>
+                <td class="p-3.5 font-semibold text-gray-800 leading-snug">${m.name}</td>
+                <td class="p-3.5 text-xs text-gray-600"><span class="bg-gray-100 px-2.5 py-1 rounded-lg inline-block border border-gray-200/60 font-medium">${m.desc || 'ไม่มีรายละเอียด'}</span></td>
+                <td class="p-3.5 text-center">
+                  <div class="flex items-center justify-center space-x-1.5">
+                    <button onclick="editMenu('${m.code}')" class="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 hover:bg-blue-100 flex items-center justify-center transition shadow-sm" title="แก้ไข"><i class="fa-solid fa-pen-to-square text-xs"></i></button>
+                    <button onclick="deleteMenu('${m.code}')" class="w-8 h-8 rounded-xl bg-red-50 text-jpRed hover:bg-red-100 flex items-center justify-center transition shadow-sm" title="ลบ"><i class="fa-solid fa-trash-can text-xs"></i></button>
+                  </div>
+                </td>
+              </tr>
+            `;
+          });
+          html += `</tbody></table>`;
+        }
+        html += `</div></div>`;
+      });
+      container.innerHTML = html;
+    }
+
+    function renderIngredientCategoryOverview() {
+      const grid = document.getElementById('ingredientCategoryOverviewGrid');
+      if(appData.categories.length === 0) {
+        grid.innerHTML = `<div class="col-span-full p-6 text-center text-gray-400 bg-white rounded-2xl border border-gray-100">ยังไม่มีหมวดหมู่ในระบบ</div>`;
+        return;
+      }
+      let html = '';
+      appData.categories.forEach(cat => {
+        const menusInCat = appData.menus.filter(m => m.category === cat);
+        let totalIngredients = 0;
+        menusInCat.forEach(m => { totalIngredients += appData.ingredients.filter(i => i.code === m.code).length; });
+        html += `
+          <div onclick="openCategoryDetailModal('${cat}')" class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 hover:border-red-200 hover:shadow-md transition cursor-pointer flex flex-col justify-between space-y-3 group">
+            <div class="flex justify-between items-start">
+              <div>
+                <span class="text-xs font-semibold text-jpRed bg-red-50 px-2.5 py-1 rounded-lg">หมวดหมู่</span>
+                <h4 class="font-bold text-lg text-gray-800 mt-1 group-hover:text-jpRed transition">${cat}</h4>
+              </div>
+              <div class="w-10 h-10 rounded-xl bg-gray-50 group-hover:bg-red-50 text-gray-500 group-hover:text-jpRed flex items-center justify-center transition"><i class="fa-solid fa-folder-open text-base"></i></div>
+            </div>
+            <div class="flex items-center justify-between pt-3 border-t border-gray-100 text-xs text-gray-500">
+              <span><i class="fa-solid fa-utensils mr-1 text-jpRed"></i> ${menusInCat.length} เมนูอาหาร</span>
+              <span class="font-semibold text-gray-700 bg-gray-100 px-2.5 py-1 rounded-lg">${totalIngredients} รายการวัตถุดิบ</span>
+            </div>
+          </div>
+        `;
+      });
+      grid.innerHTML = html;
+    }
+
+    function openCategoryDetailModal(catName) {
+      document.getElementById('catModalTitle').innerText = `หมวดหมู่: ${catName}`;
+      const contentEl = document.getElementById('catModalContent');
+      const menus = appData.menus.filter(m => m.category === catName);
+      if(menus.length === 0) {
+        contentEl.innerHTML = `<div class="text-center py-12 text-gray-400"><i class="fa-solid fa-plate-wheat text-3xl mb-2"></i><p>ยังไม่มีเมนูอาหารในหมวดหมู่นี้</p></div>`;
+      } else {
+        let html = '';
+        menus.forEach(m => {
+          const ings = appData.ingredients.filter(i => i.code === m.code);
+          html += `
+            <div class="bg-gray-50 rounded-2xl p-4 border border-gray-100 space-y-3">
+              <div class="flex justify-between items-center">
+                <div><span class="text-xs font-bold text-jpRed">${m.code}</span><h5 class="font-bold text-base text-gray-800">${m.name}</h5></div>
+                <span class="text-xs font-semibold bg-white px-3 py-1 rounded-xl border border-gray-200 text-gray-600">${ings.length} วัตถุดิบ</span>
+              </div>
+          `;
+          if(ings.length === 0) {
+            html += `<p class="text-xs text-gray-400 italic bg-white p-2.5 rounded-xl border border-gray-100">ยังไม่ได้ระบุวัตถุดิบ</p>`;
+          } else {
+            html += `<div class="grid grid-cols-1 sm:grid-cols-2 gap-2">`;
+            ings.forEach(i => {
+              html += `<div class="bg-white px-3 py-2 rounded-xl border border-gray-200 flex justify-between items-center text-xs"><span class="font-medium text-gray-700"><i class="fa-solid fa-check text-jpRed mr-1.5"></i>${i.ingredientName}</span><span class="font-semibold text-jpRed bg-red-50 px-2 py-0.5 rounded-md">${i.quantity} ${i.unit}</span></div>`;
+            });
+            html += `</div>`;
+          }
+          html += `</div>`;
+        });
+        contentEl.innerHTML = html;
+      }
+      document.getElementById('categoryDetailModal').classList.remove('hidden');
+    }
+
+    function closeCategoryDetailModal() { document.getElementById('categoryDetailModal').classList.add('hidden'); }
+
+    function openMenuDetail(code) {
+      const menu = appData.menus.find(m => m.code === code);
+      if(!menu) return;
+      document.getElementById('modalImg').src = menu.image || '';
+      document.getElementById('modalCategory').innerText = menu.category;
+      document.getElementById('modalCode').innerText = menu.code;
+      document.getElementById('modalName').innerText = menu.name;
+      document.getElementById('modalDesc').innerText = menu.desc || 'ไม่มีรายละเอียด';
+      const ings = appData.ingredients.filter(i => i.code === code);
+      const ingListEl = document.getElementById('modalIngredientsList');
+      if(ings.length === 0) {
+        ingListEl.innerHTML = `<p class="text-xs text-gray-400 italic bg-gray-50 p-4 rounded-xl text-center">ยังไม่ได้ระบุวัตถุดิบสำหรับเมนูนี้</p>`;
+      } else {
+        let ingHtml = '<div class="grid grid-cols-1 gap-2.5">';
+        ings.forEach(i => {
+          ingHtml += `
+            <div class="flex justify-between items-center bg-gradient-to-r from-red-50/70 via-white to-gray-50 p-3.5 rounded-2xl border border-red-100/60 shadow-sm gap-3">
+              <div class="flex items-center space-x-3 flex-grow min-w-0">
+                <div class="w-8 h-8 rounded-xl bg-red-100 text-jpRed flex items-center justify-center font-bold text-xs flex-shrink-0">
+                  <i class="fa-solid fa-check"></i>
+                </div>
+                <span class="font-semibold text-gray-800 text-sm leading-snug break-words">${i.ingredientName}</span>
+              </div>
+              <span class="px-3 py-1 bg-red-50 text-jpRed font-bold text-xs rounded-xl border border-red-100 whitespace-nowrap flex-shrink-0 text-center">
+                ${i.quantity} ${i.unit}
+              </span>
+            </div>
+          `;
+        });
+        ingListEl.innerHTML = ingHtml + '</div>';
+      }
+      document.getElementById('detailModal').classList.remove('hidden');
+    }
+
+    function closeModal() { document.getElementById('detailModal').classList.add('hidden'); }
+
+    function onAdminIngCategoryChange() {
+      const selectedCat = document.getElementById('ingFilterCategory').value;
+      const selectMenuEl = document.getElementById('ingSelectMenu');
+      let filteredMenus = appData.menus.filter(m => (selectedCat === 'ทั้งหมด' || m.category === selectedCat));
+      let options = filteredMenus.length === 0 ? `<option value="" disabled selected>-- ไม่พบเมนูอาหาร --</option>` : `<option value="" disabled selected>-- เลือกเมนูอาหาร --</option>`;
+      filteredMenus.forEach(m => { options += `<option value="${m.code}">[${m.code}] ${m.name}</option>`; });
+      selectMenuEl.innerHTML = options;
+      document.getElementById('ingredientRowsContainer').innerHTML = `<p class="text-xs text-gray-400 italic text-center py-4">กรุณาเลือกเมนูด้านบนเพื่อจัดการวัตถุดิบ</p>`;
+    }
+
+    function loadIngredientsForMenu() {
+      const code = document.getElementById('ingSelectMenu').value;
+      if(!code) return;
+      const ings = appData.ingredients.filter(i => i.code === code);
+      const container = document.getElementById('ingredientRowsContainer');
+      let html = '';
+      if(ings.length === 0) { html = generateIngredientRowHTML(); }
+      else { ings.forEach(i => { html += generateIngredientRowHTML(i.ingredientName, i.quantity, i.unit); }); }
+      container.innerHTML = html;
+    }
+
+    function generateIngredientRowHTML(name = '', qty = '', unit = '') {
+      const ingredientDefaults = {};
+      appData.ingredients.forEach(i => {
+        if (i.ingredientName && !ingredientDefaults[i.ingredientName]) {
+          ingredientDefaults[i.ingredientName] = { quantity: i.quantity, unit: i.unit };
+        }
+      });
+      const uniqueIngredients = Object.keys(ingredientDefaults);
+      let datalistOptions = '';
+      uniqueIngredients.forEach(ingName => { datalistOptions += `<option value="${ingName}">`; });
+      const listId = 'ingList_' + Math.random().toString(36).substr(2, 9);
+      const defaultsJson = encodeURIComponent(JSON.stringify(ingredientDefaults));
+      
+      return `
+        <div class="ing-row flex items-center space-x-2" data-defaults="${defaultsJson}">
+          <div class="flex-grow relative">
+            <input type="text" list="${listId}" value="${name}" oninput="onIngredientNameChange(this)" onchange="onIngredientNameChange(this)" placeholder="ชื่อวัตถุดิบ (เช่น ข้าวซูชิ)" class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:bg-white outline-none focus:ring-2 focus:ring-jpRed ing-name">
+            <datalist id="${listId}">${datalistOptions}</datalist>
+          </div>
+          <input type="text" value="${qty}" placeholder="ปริมาณ" class="w-24 px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:bg-white outline-none focus:ring-2 focus:ring-jpRed ing-qty">
+          <input type="text" value="${unit}" placeholder="หน่วย" class="w-28 px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:bg-white outline-none focus:ring-2 focus:ring-jpRed ing-unit">
+          <button type="button" onclick="removeIngredientRow(this)" class="w-10 h-10 bg-red-50 text-jpRed rounded-xl hover:bg-red-100 flex items-center justify-center transition flex-shrink-0"><i class="fa-solid fa-trash-can text-xs"></i></button>
+        </div>
+      `;
+    }
+
+    function onIngredientNameChange(inputEl) {
+      const row = inputEl.closest('.ing-row');
+      const name = inputEl.value.trim();
+      const defaultsJson = row.getAttribute('data-defaults');
+      if (!defaultsJson) return;
+      try {
+        const ingredientDefaults = JSON.parse(decodeURIComponent(defaultsJson));
+        if (ingredientDefaults[name]) {
+          const qtyInput = row.querySelector('.ing-qty');
+          const unitInput = row.querySelector('.ing-unit');
+          qtyInput.value = ingredientDefaults[name].quantity;
+          unitInput.value = ingredientDefaults[name].unit;
+        }
+      } catch (e) {}
+    }
+
+    function addIngredientRow() {
+      const container = document.getElementById('ingredientRowsContainer');
+      const row = document.createElement('div');
+      row.innerHTML = generateIngredientRowHTML();
+      container.appendChild(row);
+    }
+
+    function removeIngredientRow(btn) { btn.closest('.ing-row').remove(); }
+
+    function saveIngredientsData() {
+      const code = document.getElementById('ingSelectMenu').value;
+      if(!code) { showToast('กรุณาเลือกเมนูก่อนบันทึกวัตถุดิบ', 'error'); return; }
+      const rows = document.querySelectorAll('.ing-row');
+      let ingredientsList = [];
+      rows.forEach(r => {
+        const name = r.querySelector('.ing-name').value.trim();
+        const qty = r.querySelector('.ing-qty').value.trim();
+        const unit = r.querySelector('.ing-unit').value.trim();
+        if(name) { ingredientsList.push({ code: code, ingredientName: name, quantity: qty, unit: unit }); }
+      });
+      google.script.run.withSuccessHandler(res => {
+        if(res.success) { showToast('บันทึกวัตถุดิบสำเร็จ'); fetchAllData(); }
+        else { showToast(res.message || 'เกิดข้อผิดพลาด', 'error'); }
+      }).saveMenuIngredients(code, ingredientsList);
+    }
+
+    function initPromoBuilder() {
+      if(document.getElementById('promoItemsContainer').innerHTML.trim() === '') {
+        addPromoItemRow();
+      }
+    }
+
+    function addPromoItemRow(selectedCat = '', selectedMenuCode = '', qtyText = '2 ชิ้น') {
+      const container = document.getElementById('promoItemsContainer');
+      const rowId = 'promoRow_' + Math.random().toString(36).substr(2, 9);
+      
+      let catOptions = `<option value="" disabled selected>-- เลือกหมวดหมู่ --</option>`;
+      appData.categories.forEach(cat => {
+        catOptions += `<option value="${cat}" ${cat === selectedCat ? 'selected' : ''}>${cat}</option>`;
+      });
+      
+      const row = document.createElement('div');
+      row.className = "promo-item-row grid grid-cols-1 sm:grid-cols-12 gap-2 items-center bg-gray-50 p-3 rounded-xl border border-gray-200";
+      row.id = rowId;
+      row.innerHTML = `
+        <div class="sm:col-span-4">
+          <select onchange="onPromoCatChange('${rowId}')" class="promo-cat-select w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-xs focus:ring-2 focus:ring-jpRed outline-none">
+            ${catOptions}
+          </select>
+        </div>
+        <div class="sm:col-span-5">
+          <select class="promo-menu-select w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-xs font-medium text-jpRed focus:ring-2 focus:ring-jpRed outline-none">
+            <option value="" disabled selected>-- เลือกเมนูอาหาร --</option>
+          </select>
+        </div>
+        <div class="sm:col-span-2">
+          <input type="text" value="${qtyText}" placeholder="จำนวน (เช่น 2 ชิ้น)" class="promo-qty-input w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-xs focus:ring-2 focus:ring-jpRed outline-none">
+        </div>
+        <div class="sm:col-span-1 text-center">
+          <button type="button" onclick="this.closest('.promo-item-row').remove()" class="w-8 h-8 bg-red-50 text-jpRed rounded-lg hover:bg-red-100 flex items-center justify-center mx-auto"><i class="fa-solid fa-trash-can text-xs"></i></button>
+        </div>
+      `;
+      container.appendChild(row);
+      if(selectedCat) {
+        updatePromoMenuDropdown(rowId, selectedCat, selectedMenuCode);
+      }
+    }
+
+    function onPromoCatChange(rowId) {
+      const row = document.getElementById(rowId);
+      const cat = row.querySelector('.promo-cat-select').value;
+      updatePromoMenuDropdown(rowId, cat, '');
+    }
+
+    function updatePromoMenuDropdown(rowId, categoryName, preSelectedCode) {
+      const row = document.getElementById(rowId);
+      const menuSelect = row.querySelector('.promo-menu-select');
+      const menus = appData.menus.filter(m => m.category === categoryName);
+      let options = `<option value="" disabled selected>-- เลือกเมนูอาหาร --</option>`;
+      menus.forEach(m => {
+        options += `<option value="${m.code}" ${m.code === preSelectedCode ? 'selected' : ''}>[${m.code}] ${m.name}</option>`;
+      });
+      menuSelect.innerHTML = options;
+    }
+
+    function handleSavePromotion(event) {
+      event.preventDefault();
+      const code = document.getElementById('pCode').value.trim();
+      const name = document.getElementById('pName').value.trim();
+      const timeSlot = document.getElementById('pTimeSlot').value;
+      const price = document.getElementById('pPrice').value.trim();
+      const desc = document.getElementById('pDesc').value.trim();
+      const image = document.getElementById('pImage').value;
+      const itemRows = document.querySelectorAll('.promo-item-row');
+      
+      let items = [];
+      itemRows.forEach(r => {
+        const menuCode = r.querySelector('.promo-menu-select').value;
+        const qty = r.querySelector('.promo-qty-input').value.trim();
+        if(menuCode) {
+          const menuObj = appData.menus.find(m => m.code === menuCode);
+          items.push({
+            menuCode: menuCode,
+            menuName: menuObj ? menuObj.name : menuCode,
+            qty: qty
+          });
+        }
+      });
+      
+      const promoData = { code, name, timeSlot, price, desc, image, items };
+      google.script.run.withSuccessHandler(res => {
+        if(res.success) {
+          showToast('บันทึกชุดโปรโมชั่นสำเร็จ');
+          resetPromoForm();
+          fetchAllData();
+        } else {
+          showToast(res.message || 'เกิดข้อผิดพลาด', 'error');
+        }
+      }).savePromotion(promoData);
+    }
+
+function resetPromoForm() {
+  document.getElementById('promoForm').reset();
+  document.getElementById('pCode').removeAttribute('readonly'); // ปลดล็อกรหัส
+  document.getElementById('pImage').value = '';
+  document.getElementById('promoItemsContainer').innerHTML = "";
+  addPromoItemRow();
+  document.getElementById('cancelPromoEdit').classList.add('hidden');
+}
+function renderAdminPromotions() {
+  const container = document.getElementById('adminPromoListContainer');
+  const timeSlots = ["10.00 - 14.00 น.", "14.00 - 17.00 น.", "17.00 - 22.00 น."];
+  let html = '';
+  timeSlots.forEach(slot => {
+    const promos = (appData.promotions || []).filter(p => p.timeSlot === slot);
+    html += `
+      <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden mb-4">
+        <div class="bg-gray-50 px-5 py-3 border-b border-gray-100 flex justify-between items-center">
+          <span class="font-bold text-sm text-gray-800"><i class="fa-solid fa-clock text-jpRed mr-1.5"></i> ช่วงเวลา: ${slot}</span>
+          <span class="text-xs bg-red-50 text-jpRed px-2.5 py-0.5 rounded-full font-semibold">${promos.length} โปรโมชั่น</span>
+        </div>
+        <div class="p-4 space-y-3">
+    `;
+    if(promos.length === 0) {
+      html += `<div class="text-center py-4 text-gray-400 text-xs italic">ยังไม่มีข้อมูลโปรโมชั่นในช่วงเวลานี้</div>`;
+    } else {
+      promos.forEach((p, idx) => {
+        const promoImgSrc = p.image ? p.image : 'https://placehold.co/100x100/FDFBF7/D32F2F?text=No+Img';
+        html += `
+          <div class="bg-gray-50 rounded-xl p-4 border border-gray-200 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div class="flex items-center space-x-3">
+              <img src="${promoImgSrc}" class="w-12 h-12 object-cover rounded-xl border border-gray-200 shadow-sm flex-shrink-0" onerror="this.src='https://placehold.co/100x100/FDFBF7/D32F2F?text=No+Img'">
+              <div class="space-y-1">
+                <div class="flex items-center space-x-2">
+                  <span class="text-xs font-bold text-jpRed bg-white px-2 py-0.5 rounded border border-gray-200">${p.code}</span>
+                  <h4 class="font-bold text-base text-gray-800">${p.name}</h4>
+                </div>
+                <div class="text-xs text-gray-600 pl-1 space-y-0.5">
+        `;
+        if(p.items) {
+          p.items.forEach(i => {
+            html += `<div>• ${i.menuName || i.name} (${i.qty || i.quantity})</div>`;
+          });
+        }
+        html += `</div>`;
+        if(p.desc || p.description) {
+          html += `<div class="text-xs text-jpRed font-medium pl-1">คำอธิบาย: ${p.desc || p.description}</div>`;
+        }
+        html += `
+              </div>
+            </div>
+            <div class="flex items-center space-x-3 self-end md:self-center">
+              <div class="text-right">
+                <div class="text-xl font-bold text-jpRed">${p.price}.-</div>
+              </div>
+              <!-- เพิ่มปุ่มแก้ไขตรงนี้ -->
+              <button onclick="editPromotion('${p.code}')" class="w-9 h-9 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-100 flex items-center justify-center transition" title="แก้ไข"><i class="fa-solid fa-pen-to-square text-xs"></i></button>
+              <button onclick="deletePromotion('${p.code}')" class="w-9 h-9 bg-red-50 text-jpRed rounded-xl hover:bg-red-100 flex items-center justify-center transition" title="ลบ"><i class="fa-solid fa-trash-can text-xs"></i></button>
+            </div>
+          </div>
+        `;
+      });
+    }
+    html += `</div></div>`;
+  });
+  container.innerHTML = html;
+}
+
+    function deletePromotion(code) {
+      if(!confirm(`ต้องการลบโปรโมชั่นรหัส "${code}" ใช่หรือไม่?`)) return;
+      google.script.run.withSuccessHandler(res => {
+        if(res.success) { showToast('ลบโปรโมชั่นสำเร็จ'); fetchAllData(); }
+        else { showToast(res.message || 'เกิดข้อผิดพลาด', 'error'); }
+      }).deletePromotion(code);
+    }
+    function editPromotion(code) {
+  const promo = (appData.promotions || []).find(p => p.code === code);
+  if (!promo) return;
+
+  // เติมข้อมูลลงในฟอร์มหลักด้านบน
+  document.getElementById('pCode').value = promo.code;
+  document.getElementById('pCode').setAttribute('readonly', true); // ล็อกรหัสไม่ให้แก้ตอนอัปเดต
+  document.getElementById('pName').value = promo.name || '';
+  document.getElementById('pTimeSlot').value = promo.timeSlot || '';
+  document.getElementById('pPrice').value = promo.price || '';
+  document.getElementById('pDesc').value = promo.desc || promo.description || '';
+  document.getElementById('pImage').value = promo.image || '';
+
+  // เคลียร์รายการเมนูเก่าในฟอร์ม แล้วสร้างรายการเมนูย่อยตามโปรโมชั่นนั้นๆ
+  const container = document.getElementById('promoItemsContainer');
+  container.innerHTML = '';
+  
+  if (promo.items && promo.items.length > 0) {
+    promo.items.forEach(item => {
+      addPromoItemRow(item.category || '', item.menuCode || '', item.qty || item.quantity || '');
+    });
+  } else {
+    addPromoItemRow();
+  }
+
+  // เปลี่ยนชื่อหัวข้อ / แสดงปุ่มยกเลิก
+  document.getElementById('cancelPromoEdit').classList.remove('hidden');
+  
+  // เลื่อนหน้าจอขึ้นไปที่ฟอร์มด้านบนสุด
+  window.scrollTo({ top: 400, behavior: 'smooth' });
+  showToast(`กำลังโหมดแก้ไขโปรโมชั่น: ${promo.code}`, 'success');
+}
+  </script>
+</body>
+</html>
